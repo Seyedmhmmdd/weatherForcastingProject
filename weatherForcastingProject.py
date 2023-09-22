@@ -3,8 +3,6 @@
 
 # ### Python Code Imports
 
-# In[1]:
-
 
 import requests
 from datetime import datetime, timedelta
@@ -29,7 +27,6 @@ import pandas as pd
 # - If you provide a city name, it will be selected; otherwise, it will default to "Tehran."
 # 
 
-# In[2]:
 
 
 class CitySelector:
@@ -66,8 +63,6 @@ if __name__ == "__main__":
 # The provided code offers a function `constructUrl` for constructing URLs for making API requests. This function takes an `endpoint`, a `baseUrl`, and optional `extraParameters` to build the final URL.
 # 
 
-# In[3]:
-
 
 apiKey: str = "Developer Plan API Key"
 baseUrl: str = "http://api.openweathermap.org"
@@ -99,7 +94,6 @@ def constructUrl(endpoint: str, baseUrl: str = "http://api.openweathermap.org", 
 # - This method fetches geolocation data for a given `city` and does not return any data. It's intended for internal use.
 # 
 
-# In[5]:
 
 
 class GeolocationDataFetcher:
@@ -109,8 +103,7 @@ class GeolocationDataFetcher:
         self.baseUrl: str = baseUrl
     
     def getGeolocationData(self, city: str) -> dict:
-        try:
-            
+        try:            
             geoEndpoint: str = "/geo/1.0/direct"
             geoParameters: dict = {
                  "q": city,
@@ -138,6 +131,8 @@ geolocationData: dict = fetcher.getGeolocationData(city)
 
 latitude = None
 longitude = None
+
+
 while not (latitude and longitude):
     if geolocationData:
         latitude = geolocationData["lat"]
@@ -176,7 +171,6 @@ while not (latitude and longitude):
 # - This method processes the raw air pollution data.
 # - It also provides a description for the air quality index (AQI) based on predefined thresholds.
 
-# In[6]:
 
 
 class Base:
@@ -188,7 +182,6 @@ class Base:
         return datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
 
-# In[7]:
 
 
 class AirPollutionData(Base):
@@ -296,7 +289,6 @@ current_air_pollution: list = currentAirPollution.currentAirPollution()
 # - This method retrieves air pollution forecast data for the specified location.
 # - The forecast data is processed using the `processAirPollution` method from the `AirPollutionData` class.
 
-# In[8]:
 
 
 class AirPollutionForecast(Base):
@@ -336,11 +328,15 @@ air_pollution_forecast_data: list = air_pollution_forecast_instance.airPollution
 
 # ## Guide for Historical Air Pollution Data Retrieval
 # 
-# The provided code fetches historical air pollution data within a specified time range based on latitude and longitude coordinates.
+# The provided code allows you to retrieve historical air pollution data for a specified time range. It prompts the user for start and stop dates and then fetches the relevant data.
 # 
-# ### Time Conversion
+# ### User Input (Please Use Correctly)
 # 
-# The code begins by converting start and stop dates to Unix timestamps for querying historical data.
+# - The code first prompts for user input to specify the start and stop dates in the format 'YYYY-MM-DD HH:MM:SS.' Please ensure that you provide valid date and time formats.
+# - It's crucial to ensure that the stop date is *after* the start date. The code does not check for this, so please provide the dates in the correct order.
+# 
+# - If you don't provide a start date, it defaults to a week ago from today.
+# - If you don't provide a stop date, it defaults to the current date and time.
 # 
 # ##### `airPollutionHistory`
 # 
@@ -348,7 +344,6 @@ air_pollution_forecast_data: list = air_pollution_forecast_instance.airPollution
 # - The retrieved data is processed using the `processAirPollution` method from the `AirPollutionData` class and returned as a list.
 # - Historical data is typically available for every 24 hours within the specified range.
 
-# In[9]:
 
 
 startDate = input("Enter start date (YYYY-MM-DD HH:MM:SS) or press Enter for default (a week ago from today): ")
@@ -432,7 +427,6 @@ air_pollution_history_data: list = air_pollution_history_instance.airPollutionHi
 # - The retrieved data is processed and returned as a dictionary containing weather details.
 # - The processed data includes information on location, country, weather condition, main features, visibility, wind, and clouds.
 
-# In[10]:
 
 
 commonParameters: dict = {
@@ -493,7 +487,6 @@ current_weather_data: dict = current_weather_instance.currentWeather()
 # - Each dictionary includes information on date and time, temperature, and weather condition.
 # - The code limits the forecast to the next 25 hours.
 
-# In[11]:
 
 
 class HourlyWeatherForecast:
@@ -552,7 +545,7 @@ hourly_forecast_data: list = hourly_forecast_instance.hourlyForecast()
 # - Each dictionary includes information on the date, daytime and nighttime temperatures, and weather condition.
 # - The code fetches forecasts for the next 7 days.
 
-# In[12]:
+
 
 
 class DailyWeatherForecast:
@@ -623,7 +616,7 @@ daily_forecast_data: list = daily_forecast_instance.dailyForecast()
 # 
 # - This method retrieves and processes the 5-days 3-hours weather forecast data.
 
-# In[13]:
+
 
 
 class FiveDaysThreeHoursWeatherForecast:
@@ -722,7 +715,6 @@ five_days_three_hours_forecast_data: list = forecast_instance.getForecastedData(
 # ```python
 # cursor.execute("SELECT cityName FROM asianCities")
 
-# In[14]:
 
 
 connection= sqlite3.connect('cities.db')
@@ -752,9 +744,6 @@ connection.close()
 # ```python
 # # europeanDf = pd.DataFrame(allGeolocationData)
 # 
-
-# In[15]:
-
 
 fetcher = GeolocationDataFetcher()
 allGeolocationData = []
@@ -811,7 +800,6 @@ asianDf = pd.DataFrame(allGeolocationData)
 # # for index, row in europeanDf.iterrows():
 # 
 
-# In[16]:
 
 
 airPollutionDataList = []
@@ -842,9 +830,6 @@ airPollutionDf = pd.concat([airPollutionDf.drop(['components'], axis=1), airPoll
 
 airPollutionCSV = 'Asia Current Air pollution Data.csv'
 airPollutionDf.to_csv(airPollutionCSV)
-
-
-# In[ ]:
 
 
 
