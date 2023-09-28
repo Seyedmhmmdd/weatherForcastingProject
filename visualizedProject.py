@@ -34,7 +34,7 @@ class CitySelector:
             else:
                 return "Tehran"  # Default city if no location information is available
         except Exception as e:
-            st.sidebar.write(f"Error fetching location: {e}")
+            st.sidebar.warning(f"Error fetching location: {e}")
             return "Tehran"
         
     # @st.cache_data(hash_funcs={"__main__.CitySelector": lambda x: hash(x.ip_api_url)}, experimental_allow_widgets=True)
@@ -65,7 +65,7 @@ def constructUrl(endpoint: str, baseUrl: str = "http://api.openweathermap.org", 
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        st.sidebar.write(f"Error making API request: {e}")
+        st.sidebar.warning(f"Error making API request: {e}")
         return None
     
 
@@ -94,7 +94,7 @@ class GeolocationDataFetcher:
             geoFinalData: dict = {key: geoData[0][key] for key in geoKeys}
             return geoFinalData
         except Exception as e:
-            st.sidebar.write(f"Error getting geolocation data: {e}")
+            st.sidebar.warning(f"Error getting geolocation data: {e}")
             return None
 
         geolocation = getGeolocationData(city)
@@ -114,19 +114,19 @@ while not (latitude and longitude):
         longitude = geolocationData["lon"]
         st.sidebar.write(f"Latitude: {latitude}, Longitude: {longitude}")
     else:
-        st.sidebar.write(f"Unable to retrieve geolocation data for {city}")
+        st.sidebar.warning(f"Unable to retrieve geolocation data for {city}")
         latitudeInput = st.sidebar.text_input(f"Enter latitude for {city}: ")
         longitudeInput = st.sidebar.text_input(f"Enter longitude for {city}: ")
     
         if not latitudeInput or not longitudeInput:
-            st.sidebar.write("Latitude and Longitude are required. Please try again.")
+            st.sidebar.warning("Latitude and Longitude are required. Please try again.")
         else:
             try:
                 latitude = float(latitudeInput)
                 longitude = float(longitudeInput)
-                st.sidebar.write("Latitude and Longitude received successfully.")
+                st.sidebar.success("Latitude and Longitude received successfully.")
             except ValueError:
-                st.sidebar.write("Invalid latitude or longitude. Please enter valid numeric values.")
+                st.sidebar.warning("Invalid latitude or longitude. Please enter valid numeric values.")
 
 
 class Base:
@@ -166,7 +166,7 @@ class AirPollutionData(Base):
             return currentAirPollutionProcessed
         
         except Exception as e:
-            st.sidebar.write(f"Error getting current air pollution data: {e}")
+            st.sidebar.warning(f"Error getting current air pollution data: {e}")
             return None
         
     def processAirPollution(self, currentAirPollutionProcessed: list) -> list:
@@ -240,7 +240,7 @@ if showData:
         st.subheader(f"The current air pollution data for {city}")
         st.dataframe(df , hide_index=True )
     else:
-        st.sidebar.write("Unable to retrieve current air pollution data.")
+        st.sidebar.warning("Unable to retrieve current air pollution data.")
 
 
 
@@ -279,7 +279,7 @@ class AirPollutionForecast(Base):
 
             return airPollutionForecastProcessed
         except Exception as e:
-            st.sidebar.write(f"Error getting current air pollution data: {e}")
+            st.sidebar.warning(f"Error getting current air pollution data: {e}")
             return None
         
 
@@ -297,10 +297,9 @@ if showData:
         st.subheader(f"The forecasted air pollution data for {city}")
         st.dataframe(df , hide_index=True )
     else:
-        st.sidebar.write("Unable to retrieve forecasted air pollution data.")
+        st.sidebar.warning("Unable to retrieve forecasted air pollution data.")
 
-
-startDate = datetime.now() - timedelta(days=7)
+startDate = datetime.now() - timedelta(days=6)
 stopDate = datetime.now()
 showData = st.sidebar.toggle("Historical Air Pollution Data")
 
@@ -313,73 +312,75 @@ if showData:
 
     
     try:
-        startDt = datetime.strptime(str(startDate), '%Y-%m-%d')
+        startDate = datetime.strptime(str(startDate), '%Y-%m-%d')
     except ValueError:
-        st.sidebar.write("Invalid start date format. Using default start date.")
-        startDt = startDate
+        st.sidebar.warning("Invalid start date format. Using default start date.")
+        startDate = datetime.now() - timedelta(days=6)
 
     try:
-        stopDt = datetime.strptime(str(stopDate), '%Y-%m-%d')
+        stopDate = datetime.strptime(str(stopDate), '%Y-%m-%d')
     except ValueError:
-        st.sidebar.write("Invalid stop date format. Using default stop date.")
-        stopDt = stopDate
+        st.sidebar.warning("Invalid stop date format. Using default stop date.")
+        stopDate = datetime.now()
     
 
-    st.sidebar.write(f"Start Date: {startDt}")
-    st.sidebar.write(f"Stop Date: {stopDt}")
+    st.sidebar.write(f"Start Date: {startDate}")
+    st.sidebar.write(f"Stop Date: {stopDate}")
 
-    # Time converting to Unix Zone
-    startTimestamp: int = int(startDt.timestamp())
-    stopTimestamp: int = int(stopDt.timestamp())
+# Time converting to Unix Zone
+startTimestamp: int = int(startDate.timestamp())
+stopTimestamp: int = int(stopDate.timestamp())
 
-    class AirPollutionHistory:
-        def __init__(self, latitude: float, longitude: float, startTimestamp: int, stopTimestamp: int):
-            self.latitude: float = latitude
-            self.longitude: float = longitude
-            self.startTimestamp: int = startTimestamp
-            self.stopTimestamp: int = stopTimestamp
-            self.airPollutionData: AirPollutionData = AirPollutionData(self.latitude, self.longitude) 
+class AirPollutionHistory:
+    def __init__(self, latitude: float, longitude: float, startTimestamp: int, stopTimestamp: int):
+        self.latitude: float = latitude
+        self.longitude: float = longitude
+        self.startTimestamp: int = startTimestamp
+        self.stopTimestamp: int = stopTimestamp
+        self.airPollutionData: AirPollutionData = AirPollutionData(self.latitude, self.longitude) 
             
-        def airPollutionHistory(self , historical_interval: str) -> list:
+    def airPollutionHistory(self , historical_interval: str) -> list:
             
-            try:
-                airPollutionHistoryEndpoint: str = "/data/2.5/air_pollution/history"
-                airPollutionHistoryExtraParameters: dict = {
-                        "lat": self.latitude,
-                        "lon": self.longitude,
-                        "start": self.startTimestamp,
-                        "end": self.stopTimestamp
-                }
+        try:
+            airPollutionHistoryEndpoint: str = "/data/2.5/air_pollution/history"
+            airPollutionHistoryExtraParameters: dict = {
+                    "lat": self.latitude,
+                    "lon": self.longitude,
+                    "start": self.startTimestamp,
+                    "end": self.stopTimestamp
+            }
 
-                airPollutionHistoryData: dict = constructUrl(
-                    airPollutionHistoryEndpoint,
-                    extraParameters=airPollutionHistoryExtraParameters
-                )
+            airPollutionHistoryData: dict = constructUrl(
+                airPollutionHistoryEndpoint,
+                extraParameters=airPollutionHistoryExtraParameters
+            )
 
-                if not airPollutionHistoryData:
-                    return None
-
-                if historical_interval == "Hourly":
-                    airPollutionHistoryList: list = airPollutionHistoryData["list"]
-                elif historical_interval == "6 Hours":
-                    airPollutionHistoryList: list = airPollutionHistoryData["list"][::4]
-                elif historical_interval == "12 Hours":
-                    airPollutionHistoryList: list = airPollutionHistoryData["list"][::12]
-                else:  # Default to Daily
-                    airPollutionHistoryList: list = airPollutionHistoryData["list"][::24]
-
-                airPollutionHistoryProcessed: list = self.airPollutionData.processAirPollution(airPollutionHistoryList)
-
-                return airPollutionHistoryProcessed
-
-            except Exception as e:
-                st.sidebar.write(f"Error getting historical air pollution data: {e}")
+            if not airPollutionHistoryData:
                 return None
 
-    air_pollution_history_instance: AirPollutionHistory = AirPollutionHistory(latitude, longitude, startTimestamp, stopTimestamp)
+            if historical_interval == "Hourly":
+                airPollutionHistoryList: list = airPollutionHistoryData["list"]
+            elif historical_interval == "6 Hours":
+                airPollutionHistoryList: list = airPollutionHistoryData["list"][::4]
+            elif historical_interval == "12 Hours":
+                airPollutionHistoryList: list = airPollutionHistoryData["list"][::12]
+            else:  # Default to Daily
+                airPollutionHistoryList: list = airPollutionHistoryData["list"][::24]
+
+            airPollutionHistoryProcessed: list = self.airPollutionData.processAirPollution(airPollutionHistoryList)
+
+            return airPollutionHistoryProcessed
+
+        except Exception as e:
+            st.sidebar.warning(f"Error getting historical air pollution data: {e}")
+            return None
+
+air_pollution_history_instance: AirPollutionHistory = AirPollutionHistory(latitude, longitude, startTimestamp, stopTimestamp)
+air_pollution_historical_data: list = air_pollution_history_instance.airPollutionHistory(historical_interval="Daily") 
+
+if showData:
     historical_interval = st.sidebar.selectbox("Select Historical Intervals", ["Daily", "12 Hours", "6 Hours", "Hourly"]) 
     air_pollution_historical_data: list = air_pollution_history_instance.airPollutionHistory(historical_interval) 
-
 
     if air_pollution_historical_data:
         df = pd.DataFrame(air_pollution_historical_data)
@@ -387,7 +388,7 @@ if showData:
         st.subheader(f"The historical air pollution data for {city}")
         st.dataframe(df , hide_index=True )
     else:
-        st.sidebar.write("Unable to retrieve historical air pollution data.")
+        st.sidebar.warning("Unable to retrieve historical air pollution data.")
 
 commonParameters: dict = {
     "lat": latitude,
@@ -403,6 +404,7 @@ class CurrentWeather:
         self.latitude: float = latitude
         self.longitude: float = longitude
         
+
     def currentWeather(self) -> dict:
         try:
             currentEndpoint: str = "/data/2.5/weather"
@@ -418,16 +420,15 @@ class CurrentWeather:
             current["condition"] = current["weather"]
             current["mainFeatures"] = current["main"]
 
-            currentKeys: list = ["name", "country", "condition",
-                           "mainFeatures", "visibility"]
+            currentKeys = ["name", "country", "condition", "mainFeatures", "visibility"]
 
-            currentWeatherData: dict = {
-                key: current[key] if key != "country" and key != "condition" else
-                (current["condition"][0]["main"] + " - " + current["condition"][0]["description"] if key == "condition"
-                 else current["country"]["country"])
-                for key in currentKeys
+            currentWeatherData = {
+                "name": current["name"],
+                "country": current["country"]["country"],
+                "condition": f"{current['condition'][0]['main']} - {current['condition'][0]['description']}",
+                **{key: current[key] for key in currentKeys if key not in ["name", "country", "condition"]}
             }
-            
+    
             main_features_mapping: dict = {
             'temp': 'Temperature (°C)',
             'feels_like': 'Feels Like (°C)',
@@ -445,7 +446,7 @@ class CurrentWeather:
             
             return currentWeatherData
         except Exception as e:
-            st.sidebar.write(f"Error getting current weather condition: {e}")
+            st.sidebar.warning(f"Error getting current weather condition: {e}")
             return None
 
 
@@ -461,7 +462,7 @@ if showData:
         st.subheader(f"The current weather condition for {city}")
         st.dataframe(df , hide_index=True )
     else:
-        st.sidebar.write("Unable to retrieve the current weather condition data.")
+        st.sidebar.warning("Unable to retrieve the current weather condition data.")
 
 
 
@@ -481,11 +482,7 @@ class HourlyWeatherForecast:
             )
             
             if hourlyForecastData is None:
-                st.sidebar.write("Failed to retrieve hourly weather forecast data.")
-                return []
-
-            if hourlyForecastData is None:
-                st.sidebar.write("Failed to retrieve hourly weather forecast data.")
+                st.sidebar.warning("Failed to retrieve hourly weather forecast data.")
                 return []
 
             hourlyForecastList: list = hourlyForecastData.get("list", [])
@@ -505,7 +502,7 @@ class HourlyWeatherForecast:
                 
             return hourlyForecastedWeatherData
         except Exception as e:
-            st.sidebar.write(f"Error getting hourly weather forecast: {e}")
+            st.sidebar.warning(f"Error getting hourly weather forecast: {e}")
             return None
 
 hourly_forecast_instance: HourlyWeatherForecast = HourlyWeatherForecast(latitude, longitude)
@@ -519,7 +516,7 @@ if showData:
         st.subheader(f"The Hourly Forcasted Data for {city}")
         st.dataframe(df , hide_index=True )
     else:
-        st.sidebar.write("Unable to retrieve the hourly forcasted data.")
+        st.sidebar.warning("Unable to retrieve the hourly forcasted data.")
 
 
 
@@ -568,7 +565,7 @@ class DailyWeatherForecast:
             return dailyForecastedWeather
 
         except Exception as e:
-            st.sidebar.write(f"Error getting daily weather forecast: {e}")
+            st.sidebar.warning(f"Error getting daily weather forecast: {e}")
             return None
 
 daily_forecast_instance: DailyWeatherForecast = DailyWeatherForecast(latitude, longitude)
@@ -585,13 +582,14 @@ if showData:
         st.subheader(f"The Daily Forcasted Data for {city}")
         st.dataframe(df , hide_index=True )
     else:
-        st.sidebar.write("Unable to retrieve the daily forcasted data.")
+        st.sidebar.warning("Unable to retrieve the daily forcasted data.")
 
 
 
 
-class FiveDaysThreeHoursWeatherForecast:
+class FiveDaysThreeHoursWeatherForecast(Base):
     def __init__(self, latitude: float, longitude: float):
+        super().__init__()
         self.latitude: float = latitude
         self.longitude: float = longitude
         
@@ -605,50 +603,30 @@ class FiveDaysThreeHoursWeatherForecast:
                 extraParameters=fiveDaysThreeHoursForcastExtraParameters
             )
 
-            return fiveDaysThreeHoursForcast["list"] if fiveDaysThreeHoursForcast else []
+            return fiveDaysThreeHoursForcast.get("list", [])
 
         except Exception as e:
-            st.sidebar.write(f"Error retrieving 5-days 3-hours weather forecast data: {e}")
+            st.sidebar.warning(f"Error retrieving 5-days 3-hours weather forecast data: {e}")
             return []
         
     def processForecastedData(self, forecastList: list) -> list:
         processedForecast: list = []
 
         for forecastData in forecastList:
-            forecastData['dt'] = datetime.utcfromtimestamp(forecastData['dt']).strftime('%Y-%m-%d %H:%M:%S')
+            forecastData['dt'] = self.format_datetime(forecastData['dt'])
 
-            forecastKeys: list = ["dt", "main", "weather"]
-            weatherInfo: dict = {}
-
-            for key in forecastKeys:
-                if key == "main" and 'temp' in forecastData['main']:
-                    weatherInfo[key] = forecastData['main']['temp']
-                elif key == "weather":
-                    weatherInfo[key] = (
-                        forecastData.get("weather", [{}])[0].get("main", "") +
-                        " - " +
-                        forecastData.get("weather", [{}])[0].get("description", "")
-                    )
-                else:
-                    weatherInfo[key] = forecastData.get(key)
+            weatherInfo: dict = {
+                'Date Time': forecastData['dt'],
+                'Temperature (°C)': forecastData['main']['temp'] if 'temp' in forecastData['main'] else None,
+                'Condition': (
+                    forecastData.get("weather", [{}])[0].get("main", "") +
+                    " - " +
+                    forecastData.get("weather", [{}])[0].get("description", "")
+                ),
+            }
 
             processedForecast.append(weatherInfo)
 
-        for entry in processedForecast:
-            dtString: str = entry['dt']
-            dtObject: datetime = datetime.strptime(dtString, '%Y-%m-%d %H:%M:%S')
-            entry['dt'] = dtObject.strftime('%Y-%m-%d %H:%M:%S')
-
-            keyMapping: dict = {
-                'dt': 'Date Time',
-                'main': 'Temperature (°C)',
-                'weather': 'Condition'
-            }
-        
-        processedForecast: list = [
-            {keyMapping.get(key, key): value for key, value in entry.items()}
-            for entry in processedForecast
-        ]
 
         return processedForecast
 
@@ -665,12 +643,10 @@ showData = st.sidebar.toggle("5-Day-3-Hour Forcasted Data")
 if showData:
     if five_days_three_hours_forecast_data:
         df = pd.DataFrame(five_days_three_hours_forecast_data)
-        # df = pd.concat([df.drop(['temperature'], axis=1), df['temperature'].apply(pd.Series)], axis=1)
-        # df = pd.concat([df.drop(['weatherCondition'], axis=1), df['weatherCondition'].apply(pd.Series)], axis=1)
         st.subheader(f"The 5-Day-3-Hour Forcasted Data for {city}")
         st.dataframe(df , hide_index=True )
     else:
-        st.sidebar.write("Unable to retrieve the 5-Day-3-hour forcasted data.")
+        st.sidebar.warning("Unable to retrieve the 5-Day-3-hour forcasted data.")
 
 
 
@@ -714,7 +690,7 @@ def get_selected_cities(selected_region):
     if selected_cities:
         return selected_cities
     else:
-        st.sidebar.write("No cities selected")
+        st.sidebar.warning("No cities selected")
         return selected_cities
 
 
@@ -745,17 +721,17 @@ for cityTuple in selected_cities:
             allGeolocationData.append(geolocationData)
             break 
         else:
-            st.sidebar.write(f"Unable to retrieve geolocation data for {cityName}")
+            st.sidebar.warning(f"Unable to retrieve geolocation data for {cityName}")
             user_input = st.sidebar.selectbox(
                 f"What would you like to do for {cityName}?",
-                ["Skip", "Enter latitude and longitude manually"]
+                ["Skip", "Enter manually"]
             )
 
             if user_input == "Skip":
                 st.sidebar.write("Skipping this city.")
                 break
 
-            elif user_input == "Enter latitude and longitude manually":
+            elif user_input == "Enter manually":
                 latitudeInput = st.sidebar.text_input(f"Enter latitude for {cityName}: ")
                 longitudeInput = st.sidebar.text_input(f"Enter longitude for {cityName}: ")
 
@@ -763,30 +739,30 @@ for cityTuple in selected_cities:
                 try:
                     latitude = float(latitudeInput)
                     longitude = float(longitudeInput)
-                    st.sidebar.write("Latitude and Longitude received successfully.")
+                    st.sidebar.success("Latitude and Longitude received successfully.")
                     break 
                 except ValueError:
-                    st.sidebar.write("Invalid latitude or longitude. Please enter valid numeric values.")
+                    st.sidebar.warning("Invalid latitude or longitude. Please enter valid numeric values.")
             else:
-                st.sidebar.write("Latitude and Longitude are required. Please try again.")
+                st.sidebar.warning("Latitude and Longitude are required. Please try again.")
 
 if showData:
     if allGeolocationData:
-        df = pd.DataFrame(allGeolocationData)
+        resultDf = pd.DataFrame(allGeolocationData)
         st.subheader("Selected Cities:")
-        st.dataframe(df, hide_index=True)
+        st.dataframe(resultDf, hide_index=True)
     else:
-        st.sidebar.write("No geolocation data available.")
+        st.sidebar.warning("No geolocation data available.")
 
 
-resultDf = pd.DataFrame()
+resultDf = pd.DataFrame(allGeolocationData)
 list_ = []
 
 if showData:
 
     def fetch_data_from_class(selected_class):
             
-            for index, row in df.iterrows():
+            for index, row in resultDf.iterrows():
                 cityName = row['name']
                 latitude = row['lat']
                 longitude = row['lon']
@@ -800,7 +776,7 @@ if showData:
                         list_.extend(air_pollution_data_with_index)
 
                     else:
-                        print(f"Unable to retrieve air pollution data for {cityName}")
+                        st.sidebar.warning(f"Unable to retrieve air pollution data for {cityName}")
 
                 elif selected_class == "Air Pollution Forecast":
                     air_pollution_forecast_instance = AirPollutionForecast(latitude, longitude)
@@ -811,35 +787,89 @@ if showData:
                         list_.extend(air_pollution_forecast_data_with_index)
                 
                     else:
-                        st.warning(f"Unable to retrieve forcasted air pollution data for {cityName}")
+                        st.sidebar.warning(f"Unable to retrieve forcasted air pollution data for {cityName}")
+                
+                elif selected_class == "Air Pollution History":
+                    air_pollution_historical_instance = AirPollutionHistory(latitude, longitude, startTimestamp, stopTimestamp)
+                    air_pollution_historical_data = air_pollution_historical_instance.airPollutionHistory(historical_interval="Daily")
 
-                # elif selected_class == "Air Pollution History":
-                #     air_pollution_historical_instance = AirPollutionHistory(latitude, longitude, startTimestamp, stopTimestamp)
-                #     air_pollution_historical_data = air_pollution_historical_instance.airPollutionHistory()
+                    if air_pollution_historical_data:
+                        air_pollution_historical_data_with_index = [{'City': cityName, **entry} for entry in air_pollution_historical_data]
+                        list_.extend(air_pollution_historical_data_with_index)
+                
+                    else:
+                        st.sidebar.warning(f"Unable to retrieve historical air pollution data for {cityName}")
 
-                #     if air_pollution_historical_data:
-                #         air_pollution_historical_data_with_index = [{'City': cityName, **entry} for entry in air_pollution_historical_data]
-                #         list_.extend(air_pollution_historical_data_with_index)
+                elif selected_class == "Current Weather Condition":
+                    current_weather_condition_instance = CurrentWeather(latitude, longitude)
+                    current_weather_condition_data = current_weather_condition_instance.currentWeather()
 
-                #     else:
-                #         st.warning(f"Unable to retrieve historical air pollution data for {cityName}")
+                    if current_weather_condition_data:
+                        current_weather_condition_data_with_index = [{'City': cityName, **current_weather_condition_data}]
+                        list_.extend(current_weather_condition_data_with_index)
+                    else:
+                        st.sidebar.warning(f"Unable to retrieve current weather condition data for {cityName}")
+
+                elif selected_class == "Hourly Weather Forecast":
+                    hourly_weather_forecast_instance = HourlyWeatherForecast(latitude, longitude)
+                    hourly_weather_forecast_data = hourly_weather_forecast_instance.hourlyForecast()
+
+                    if hourly_weather_forecast_data:
+                        hourly_weather_forecast_data_with_index = [{'City': cityName, **entry} for entry in hourly_weather_forecast_data]
+                        list_.extend(hourly_weather_forecast_data_with_index)
+                    else:
+                        st.sidebar.warning(f"Unable to retrieve hourly weather forecast data for {cityName}")
+
+                elif selected_class == "Daily Weather Forecast":
+                    daily_weather_forecast_instance = DailyWeatherForecast(latitude, longitude)
+                    daily_weather_forecast_data = daily_weather_forecast_instance.dailyForecast()
+
+                    if daily_weather_forecast_data:
+                        daily_weather_forecast_data_with_index = [{'City': cityName, **entry} for entry in daily_weather_forecast_data]
+                        list_.extend(daily_weather_forecast_data_with_index)
+                    else:
+                        st.sidebar.warning(f"Unable to retrieve daily weather forecast data for {cityName}")
+
+                elif selected_class == "FiveDays-ThreeHours Weather Forecast":
+                    weather_forecast_instance = FiveDaysThreeHoursWeatherForecast(latitude, longitude)
+                    weather_forecast_data = weather_forecast_instance.getForecastedData()
+
+                    if weather_forecast_data:
+                        weather_forecast_data_with_index = [{'City': cityName, **entry} for entry in weather_forecast_data]
+                        list_.extend(weather_forecast_data_with_index)
+                    else:
+                        st.sidebar.warning(f"Unable to retrieve weather forecast data for {cityName}")
+
+                
 
 
-    selected_class = st.sidebar.selectbox("Select a collector class:", ["Current Air Pollution", "Air Pollution Forecast","Air Pollution History"])
+    selected_class = st.sidebar.selectbox("Select a collector class:", ["Current Air Pollution", "Air Pollution Forecast", "Air Pollution History",
+                                                                        "Current Weather Condition", "Hourly Weather Forecast", "Daily Weather Forecast","FiveDays-ThreeHours Weather Forecast"])
 
     if selected_class:
         data = fetch_data_from_class(selected_class)
 
         if list_:
-            resultDf = pd.DataFrame(list_)
+            df = pd.DataFrame(list_)
+            if 'components' in df.columns:
+                df = pd.concat([df.drop(['components'], axis=1), df['components'].apply(pd.Series)], axis=1)
+
+            elif 'mainFeatures' in df.columns:
+                df = pd.concat([df.drop(['mainFeatures'], axis=1), df['mainFeatures'].apply(pd.Series)], axis=1)
+                columns_to_drop = ['name', 'country']
+                df = df.drop(columns=columns_to_drop)
+
+            elif 'temperature' and 'weatherCondition' in df.columns:
+                df = pd.concat([df.drop(['temperature'], axis=1), df['temperature'].apply(pd.Series)], axis=1)
+                df = pd.concat([df.drop(['weatherCondition'], axis=1), df['weatherCondition'].apply(pd.Series)], axis=1)
+ 
             st.subheader("Data Preview:")
-            df = pd.DataFrame(resultDf)
-            df = pd.concat([df.drop(['components'], axis=1), df['components'].apply(pd.Series)], axis=1)
             st.dataframe(df, hide_index=True)
 
             if st.button("Export as CSV"):
                 st.write("Exporting data to CSV...")
                 df.to_csv(f"{selected_class}_data.csv", index=False)
                 st.success(f"{selected_class}_data.csv file created successfully!")
+
         else:
-            st.warning("No data available for the selected class.")
+            st.sidebar.warning("No data available for the selected class.")
